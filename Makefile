@@ -19,16 +19,18 @@ format: ## Format code with ruff
 test: ## Run tests
 	uv run pytest
 
-build: ## Build the container image with rootless Podman
+build: ## Build the container image using Podman
 	podman build \
 		--file Containerfile \
 		--tag $(IMAGE_NAME):$(IMAGE_TAG) \
 		.
 
-run: ## Run the container image with rootless Podman
-	podman run --rm -it \
+run: ## Run the container using Podman. Usage: PDEU_DISCORD_TOKEN=... make run
+	podman run --rm -d \
 		--name $(IMAGE_NAME) \
+		--env PDEU_DISCORD_TOKEN \
+		--env PDEU_WATCH_CHANNEL_ID \
 		$(IMAGE_NAME):$(IMAGE_TAG)
 
-img-clean: ## Remove the container image
+img-clean: ## Remove the :latest container image from local registry
 	podman rmi $(IMAGE_NAME):$(IMAGE_TAG)
