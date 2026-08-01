@@ -20,9 +20,9 @@ class ExampleCog(MessageWatcherCog):
     async def handle(self, message: discord.Message) -> None:
         # Replace with your own logic. This example does nothing.
         # Example: react with a wave when someone says "bye".
-        # if " bye " in f" {message.content} ":
-        #     logger.debug("Saw 'bye' in message %s", message.id)
-        #     await message.channel.send("\U0001f44b")
+        if " bye " in f" {message.content} ":
+            logger.debug("Saw 'bye' in message %s", message.id)
+            await message.channel.send("\U0001f44b")
 
 
 async def setup(bot: commands.Bot) -> None:
