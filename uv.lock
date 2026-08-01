@@ -145,11 +145,11 @@ wheels = [
 
 [[package]]
 name = "dynaconf"
-version = "3.3.2"
+version = "3.3.4"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/2e/fa/351d165f6f9fe493a92a2e155f3097a4379dbe23e731b68543ce9988ee19/dynaconf-3.3.2.tar.gz", hash = "sha256:3b50232b774142702c3d4623633bcd76bb9951abf8567b7f1340d73a30a80899", size = 327805, upload-time = "2026-06-29T20:55:41.706Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5c/c2/5c8b5f4003bfd5a4666a324a60e08e8bb1bd5d2966159de8dbfdd61a8ca7/dynaconf-3.3.4.tar.gz", hash = "sha256:f387bf8dabb85e28a5a79f8a0cac81e5d4da7f37c055dc93d34ed6decb4eff49", size = 331481, upload-time = "2026-07-29T07:17:31.031Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bb/7d/1e50069bb7d9774acbcb7d9509a4be95348e6476009f083d46cca67c5dbc/dynaconf-3.3.2-py3-none-any.whl", hash = "sha256:4bb8ac4222af0bb4315e3da40022c283ed140bafb80c36282a7973404a67cd8a", size = 270081, upload-time = "2026-06-29T20:55:40.066Z" },
+    { url = "https://files.pythonhosted.org/packages/68/98/a617a7d3dc13115f9b3820781c7af328d69d4d423e14a03df10c0286fb96/dynaconf-3.3.4-py3-none-any.whl", hash = "sha256:215efde1dadb2b83b1ff3e84a8b2290975a23656658cc47d06b1603f289508b4", size = 271216, upload-time = "2026-07-29T07:17:29.243Z" },
 ]
 
 [[package]]
@@ -259,9 +259,9 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "discord-py", specifier = ">=2.4" },
-    { name = "dynaconf", specifier = ">=3.2" },
-    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "discord-py", specifier = ">=2.7.1" },
+    { name = "dynaconf", specifier = ">=3.3.4" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
 ]
 
 [[package]]
