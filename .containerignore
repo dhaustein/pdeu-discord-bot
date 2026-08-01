@@ -1,0 +1,39 @@
+# Version control
+.git/
+.gitignore
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Env files
+.env
+.env.*
+
+# age private keys
+age/keys.txt
+age/*.txt
+age/*.key
+*.agekey
+
+# Plaintext/decrypted secrets — the SOPS-encrypted secrets.yaml IS included
+secrets.*.decrypted.*
+*.decrypted.yaml
+
+# Editor / OS noise
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Container build files themselves
+Containerfile
+.containerignore
+.dockerignore
