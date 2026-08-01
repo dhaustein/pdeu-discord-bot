@@ -9,6 +9,8 @@ import logging
 import discord
 from discord.ext import commands
 
+from bot import PDEUBot
+
 logger = logging.getLogger(__name__)
 
 
@@ -20,7 +22,7 @@ class MessageWatcherCog(commands.Cog):
     logic and cannot accidentally react to bots or other channels.
     """
 
-    def __init__(self, bot: commands.Bot, watch_channel_id: int):
+    def __init__(self, bot: PDEUBot, watch_channel_id: int) -> None:
         self.bot = bot
         self.watch_channel_id = watch_channel_id
 

@@ -9,6 +9,8 @@ import logging
 
 import discord
 
+from bot import PDEUBot
+
 from .base import MessageWatcherCog
 
 logger = logging.getLogger(__name__)
@@ -25,6 +27,6 @@ class ExampleCog(MessageWatcherCog):
             await message.channel.send("\U0001f44b")
 
 
-async def setup(bot: commands.Bot) -> None:
+async def setup(bot: PDEUBot) -> None:
     await bot.add_cog(ExampleCog(bot, bot.watch_channel_id))
     logger.info("Loaded cog %s", __name__)

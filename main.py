@@ -3,7 +3,8 @@ import logging
 import sys
 
 import discord
-from discord.ext import commands
+
+from bot import PDEUBot
 from log_setup import preconfigure_logging, setup_logging
 
 # Phase 1: configure stdout logging before importing `config` so the SOPS
@@ -12,7 +13,7 @@ from log_setup import preconfigure_logging, setup_logging
 # settings aren't loaded yet. setup_logging() below finalizes from settings.
 preconfigure_logging()
 
-from config import settings  # noqa: E402  (must follow preconfigure_logging)
+from config import settings
 
 setup_logging()
 
@@ -37,7 +38,7 @@ if not WATCH_CHANNEL_ID:
 # Cogs loaded at startup. Add new feature cogs here (e.g. "cogs.reactions").
 # Each entry is a Python module path resolvable from the project root.
 INITIAL_COGS = [
-    "cogs.hello_world",
+    "cogs.nice",
     # "cogs.example",  # Uncomment to enable the template cog.
 ]
 
@@ -46,9 +47,8 @@ INITIAL_COGS = [
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
-# Shared config that cogs read via `bot.watch_channel_id` in their setup().
-bot.watch_channel_id = WATCH_CHANNEL_ID
+# Cogs read the watched channel via `bot.watch_channel_id` in their setup().
+bot = PDEUBot(watch_channel_id=WATCH_CHANNEL_ID, command_prefix="!", intents=intents)
 
 
 @bot.event
