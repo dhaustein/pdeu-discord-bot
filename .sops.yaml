@@ -1,0 +1,20 @@
+# SOPS configuration for the pdeu-discord-bot project.
+#
+# Secrets are encrypted with `age`. To set up locally:
+#   1. Install age and sops.
+#   2. Generate a key pair:  age-keygen -o age/keys.txt
+#      (the private key file is gitignored — keep it safe).
+#   3. Copy the public key (the `# public key:` line) into `age_recipients`
+#      below, or set SOPS_AGE_RECIPIENTS in your environment.
+#   4. Edit secrets:  sops secrets.yaml
+#
+# To rotate or add a new collaborator's key, re-encrypt:
+#   sops updatekeys secrets.yaml
+
+creation_rules:
+  - path_regex: ^secrets\.yaml$
+    # Comma-separated list of age recipient (public) keys.
+    # Override at runtime with the SOPS_AGE_RECIPIENTS env var if you prefer
+    # not to commit recipients here.
+    age: >-
+      age1xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

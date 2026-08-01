@@ -1,0 +1,70 @@
+import asyncio
+import logging
+import sys
+
+import discord
+from discord.ext import commands
+from log_setup import preconfigure_logging, setup_logging
+
+# Phase 1: configure stdout logging before importing `config` so the SOPS
+# loader (which runs during Dynaconf construction in `config.settings`) routes
+# its import-time log lines to stdout. Level comes from PDEU_LOG_LEVEL only;
+# settings aren't loaded yet. setup_logging() below finalizes from settings.
+preconfigure_logging()
+
+from config import settings  # noqa: E402  (must follow preconfigure_logging)
+
+setup_logging()
+
+logger = logging.getLogger(__name__)
+
+# Validate required configuration up front so the bot fails fast with a clear
+# message instead of a cryptic Discord error mid-startup.
+DISCORD_TOKEN = settings.DISCORD_TOKEN
+WATCH_CHANNEL_ID = settings.WATCH_CHANNEL_ID
+
+if not DISCORD_TOKEN:
+    sys.exit(
+        "DISCORD_TOKEN is not set. Put it in secrets.yaml (SOPS-encrypted) "
+        "or export PDEU_DISCORD_TOKEN. See README.md → Configuration."
+    )
+if not WATCH_CHANNEL_ID:
+    sys.exit(
+        "WATCH_CHANNEL_ID is not set. Put it in config/settings.yaml "
+        "or export PDEU_WATCH_CHANNEL_ID. See README.md → Configuration."
+    )
+
+# Cogs loaded at startup. Add new feature cogs here (e.g. "cogs.reactions").
+# Each entry is a Python module path resolvable from the project root.
+INITIAL_COGS = [
+    "cogs.hello_world",
+    # "cogs.example",  # Uncomment to enable the template cog.
+]
+
+# Privileged intents: message_content must also be enabled in the
+# Discord Developer Portal under Bot > Privileged Gateway Intents.
+intents = discord.Intents.default()
+intents.message_content = True
+
+bot = commands.Bot(command_prefix="!", intents=intents)
+# Shared config that cogs read via `bot.watch_channel_id` in their setup().
+bot.watch_channel_id = WATCH_CHANNEL_ID
+
+
+@bot.event
+async def on_ready() -> None:
+    logger.info("Logged in as %s (id: %s)", bot.user, bot.user.id)
+    logger.info("Watching channel %s", WATCH_CHANNEL_ID)
+    logger.info("Loaded cogs: %s", ", ".join(bot.cogs.keys()) or "(none)")
+
+
+async def main() -> None:
+    async with bot:
+        for cog in INITIAL_COGS:
+            logger.debug("Loading cog: %s", cog)
+            await bot.load_extension(cog)
+        await bot.start(DISCORD_TOKEN)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
