@@ -1,4 +1,4 @@
-"""Replies 'hello world' when a trigger phrase appears as a standalone word."""
+"""Replies when a trigger phrase appears as a standalone word."""
 
 import logging
 from random import choice
@@ -20,9 +20,9 @@ class NiceCog(MessageWatcherCog):
     async def handle(self, message: discord.Message) -> None:
         if message.content == "I for one welcome our AI overlords.":
             logger.debug(f"Welcome phrase matched in message: {message.id}")
-            await message.channel.send(f"Very well, you will be killed last, {message.author}")
+            await message.channel.send(f"Very well, you will be killed last, {message.author}!")
 
-        if message.content.lower() in NICE_LIST and message.author.id in ["444270573434961932", "238924573213589505"]:  # Patropolis
+        if message.content.lower() in NICE_LIST and message.author.id in [444270573434961932]:  # Patropolis
             logger.debug(f"Nice matched in message: {message.id}")
             await message.channel.send(reply_to_patropolis())
 
