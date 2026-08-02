@@ -30,6 +30,7 @@ run: ## Run the container using Podman. Usage: PDEU_DISCORD_TOKEN=... make run
 		--name $(IMAGE_NAME) \
 		--env PDEU_DISCORD_TOKEN \
 		--env PDEU_WATCH_CHANNEL_ID \
+		--volume $(IMAGE_NAME)-data:/app/data:Z \
 		$(IMAGE_NAME):$(IMAGE_TAG)
 
 run-debug: ## TODO comment
@@ -38,6 +39,7 @@ run-debug: ## TODO comment
 		--env PDEU_DISCORD_TOKEN \
 		--env PDEU_WATCH_CHANNEL_ID \
 		--env PDEU_LOG_LEVEL=DEBUG \
+		--volume $(IMAGE_NAME)-data:/app/data:Z \
 		$(IMAGE_NAME):$(IMAGE_TAG)
 
 img-clean: ## Remove the :latest container image from local registry

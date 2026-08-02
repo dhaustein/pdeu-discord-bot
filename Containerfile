@@ -23,6 +23,9 @@ FROM docker.io/python:3.14-slim-trixie
 RUN groupadd -r app && useradd -r -g app appuser
 WORKDIR /app
 
+# Data directory for the on-disc cache; mounted as a volume at runtime.
+RUN mkdir -p /app/data && chown appuser:app /app/data
+
 COPY --from=builder --chown=appuser:app /app/.venv /app/.venv
 
 COPY --from=builder --chown=appuser:app /app /app
