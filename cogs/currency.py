@@ -48,32 +48,27 @@ class Conversion:
     converted: dict[str, float]
 
 
-def parse_ndjson(raw: str) -> list[ExchangeRate]:
-    """Parse newline-delimited JSON into a list of exchange rates.
+def parse_rates(raw: str) -> list[ExchangeRate]:
+    """Parse exchange rates from a JSON array payload.
 
-    Blank lines are skipped.
+    The Frankfurter v2 API returns a JSON array of rate objects.
 
     Args:
-        raw: The raw NDJSON payload, one JSON object per line.
+        raw: The raw JSON array payload.
 
     Returns:
         The parsed exchange rates, in the order they appear in the payload.
     """
-    rates: list[ExchangeRate] = []
-    for line in raw.splitlines():
-        stripped = line.strip()
-        if not stripped:
-            continue
-        obj = json.loads(stripped)
-        rates.append(
-            ExchangeRate(
-                date=obj["date"],
-                base=obj["base"],
-                quote=obj["quote"],
-                rate=float(obj["rate"]),
-            )
+    objects: list[dict[str, str | float]] = json.loads(raw)
+    return [
+        ExchangeRate(
+            date=str(obj["date"]),
+            base=str(obj["base"]),
+            quote=str(obj["quote"]),
+            rate=float(obj["rate"]),
         )
-    return rates
+        for obj in objects
+    ]
 
 
 class ExchangeRateClient:
@@ -92,7 +87,7 @@ class ExchangeRateClient:
         """Initialize the client.
 
         Args:
-            url: The endpoint returning NDJSON exchange rate data.
+            url: The endpoint returning exchange rate data.
             ttl_seconds: How long cached rates are considered fresh before refetching.
             cache_path: Path of the JSON file used to persist the cache across restarts.
         """
@@ -198,7 +193,7 @@ class ExchangeRateClient:
             )
             raise
         logger.info(f"Received exchange rate API response: {resp.text}")
-        self._cache = parse_ndjson(resp.text)
+        self._cache = parse_rates(resp.text)
         self._last_fetched = time.time()
         self._save_to_disc()
         return self._cache
