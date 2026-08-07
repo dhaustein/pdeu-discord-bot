@@ -10,7 +10,10 @@ from pathlib import Path
 
 import httpx
 
+logger = logging.getLogger(__name__)
+
 DEFAULT_CACHE_PATH = Path("data/exchange_rates.json")
+
 
 @dataclass
 class ExchangeRate:
@@ -20,6 +23,7 @@ class ExchangeRate:
     base: str
     quote: str
     rate: float
+
 
 def parse_ndjson(raw: str) -> list[ExchangeRate]:
     """Parse newline-delimited JSON into a list of exchange rates.
@@ -38,13 +42,16 @@ def parse_ndjson(raw: str) -> list[ExchangeRate]:
         if not stripped:
             continue
         obj = json.loads(stripped)
-        rates.append(ExchangeRate(
-            date=obj["date"],
-            base=obj["base"],
-            quote=obj["quote"],
-            rate=float(obj["rate"]),
-        ))
+        rates.append(
+            ExchangeRate(
+                date=obj["date"],
+                base=obj["base"],
+                quote=obj["quote"],
+                rate=float(obj["rate"]),
+            )
+        )
     return rates
+
 
 class ExchangeRateClient:
     """Fetches exchange rates from a remote endpoint and caches them on disc for a TTL.
@@ -89,11 +96,22 @@ class ExchangeRateClient:
         """
         try:
             payload = json.loads(self._cache_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+        except OSError:
+            logger.exception(
+                f"Failed to read exchange rate cache from {self._cache_path}"
+            )
+            return False
+        except json.JSONDecodeError:
+            logger.warning(
+                f"Exchange rate cache at {self._cache_path} is corrupt; will refetch"
+            )
             return False
         rates = [ExchangeRate(**entry) for entry in payload["rates"]]
         self._cache = rates
         self._last_fetched = float(payload["fetched_at"])
+        logger.info(
+            f"Loaded {len(rates)} exchange rates from disc cache at {self._cache_path}"
+        )
         return True
 
     def _save_to_disc(self) -> None:
@@ -103,6 +121,7 @@ class ExchangeRateClient:
         cannot leave a corrupt cache behind.
         """
         if self._cache is None:
+            logger.debug("Skipping disc cache write: no rates in memory")
             return
         payload = {
             "fetched_at": self._last_fetched,
@@ -139,8 +158,14 @@ class ExchangeRateClient:
             self._load_from_disc()
 
         if not self._is_stale and self._cache is not None:
+            logger.debug(
+                f"Serving {len(self._cache)} cached exchange rates (fresh for another {self._ttl - (time.time() - self._last_fetched):.0f}s)"
+            )
             return self._cache
 
+        logger.debug(
+            f"Exchange rate cache is stale or missing; fetching from {self._url}"
+        )
         resp = await self._client.get(self._url)
         try:
             resp.raise_for_status()
@@ -157,17 +182,22 @@ class ExchangeRateClient:
 
     async def close(self) -> None:
         """Close the underlying HTTP client."""
+        logger.debug("Closing exchange rate HTTP client")
         await self._client.aclose()
 
+
 async def main() -> None:
-    client = ExchangeRateClient("https://api.frankfurter.dev/v2/rates?quotes=SEK,DKK,CZK,GBP,AUD,EUR")
+    client = ExchangeRateClient(
+        "https://api.frankfurter.dev/v2/rates?quotes=SEK,DKK,CZK,GBP,AUD,EUR"
+    )
     try:
-        rates = await client.get_rates()      # first fetch is from network or disc cache
-        print(f"Loaded {len(rates)} rates")
+        rates = await client.get_rates()  # first fetch is from network or disc cache
+        logger.info(f"Loaded {len(rates)} rates")
 
         rates = await client.get_rates()
     finally:
         await client.close()
+
 
 if __name__ == "__main__":
     asyncio.run(main())
