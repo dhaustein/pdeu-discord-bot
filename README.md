@@ -234,6 +234,34 @@ sops updatekeys secrets.yaml
 
 To rotate a compromised key: remove the old recipient from `.sops.yaml`, add a new one, `sops updatekeys secrets.yaml`, then `sops secrets.yaml` to re-encrypt with the new key only. (SOPS cannot revoke access from someone who already has a copy of the file + old private key — treat rotation as "re-encrypt with new keys and rotate the secrets themselves if the old key was exposed.")
 
+## CI & Releases
+
+### CI
+
+Every push to `main` and every pull request runs the [CI workflow](.github/workflows/ci.yaml): `make lint` (ruff + mypy) and a Containerfile build check.
+
+### Releases (automated)
+
+Releases are fully automated with [release-please](https://github.com/googleapis/release-please), driven by [conventional commits](https://www.conventionalcommits.org/):
+
+1. Merge PRs to `main` using conventional commit messages (`feat: ...`, `fix: ...`, etc.).
+2. release-please maintains a **Release PR** that bumps `version` in `pyproject.toml` and updates `CHANGELOG.md` based on those commits.
+3. Merging the Release PR creates the git tag (`vX.Y.Z`) and the GitHub Release.
+4. The [Release Image workflow](.github/workflows/release-image.yaml) then builds the container image, pushes it to GHCR as `ghcr.io/<owner>/pdeu-discord-bot:vX.Y.Z` and `:latest`, and appends the pull command + digest to the release notes.
+
+Version numbering is automatic: `fix:` → patch, `feat:` → minor, `feat!:`/`BREAKING CHANGE:` → major.
+
+### Pulling the image
+
+The GHCR package is private (matching the repo), so authenticate first with a PAT that has `read:packages`:
+
+```sh
+echo "$GITHUB_TOKEN" | docker login ghcr.io -u <your-username> --password-stdin
+docker pull ghcr.io/<owner>/pdeu-discord-bot:latest
+```
+
+**One-time step — link the package to the repo:** after the first image push, go to your GitHub profile → *Packages* → `pdeu-discord-bot` → *Package settings* → *Connect repository* → select `pdeu-discord-bot`. The image then appears in the repo sidebar and inherits the repo's access permissions.
+
 ## Running
 
 ```sh
