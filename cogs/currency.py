@@ -6,13 +6,27 @@ import logging
 import os
 import time
 from dataclasses import dataclass
+from itertools import islice
 from pathlib import Path
 
+import discord
 import httpx
+
+from bot import PDEUBot
+
+from .base import MessageWatcherCog
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_CACHE_PATH = Path("data/exchange_rates.json")
+EXCHANGE_RATES_URL = (
+    "https://api.frankfurter.dev/v2/rates?quotes=SEK,DKK,CZK,GBP,AUD,EUR"
+)
+
+# Hard limit on how many amount-currency pairs are converted per message.
+MAX_PAIRS_PER_MESSAGE = 5
+# Amounts at or above this value are rejected as unreasonable.
+MAX_AMOUNT = 100_000_000
 
 
 @dataclass
@@ -23,6 +37,15 @@ class ExchangeRate:
     base: str
     quote: str
     rate: float
+
+
+@dataclass
+class Conversion:
+    """A validated amount in one currency converted to the other supported currencies."""
+
+    amount: float
+    currency: str
+    converted: dict[str, float]
 
 
 def parse_ndjson(raw: str) -> list[ExchangeRate]:
@@ -185,11 +208,162 @@ class ExchangeRateClient:
         logger.debug("Closing exchange rate HTTP client")
         await self._client.aclose()
 
+    async def get_rate_map(self) -> dict[str, float]:
+        """Return a mapping of quote currency code to its rate against the base currency.
+
+        The base currency of the fetched quotes is assumed to be EUR and is
+        added with a rate of 1.0.
+
+        Returns:
+            Mapping of currency code (e.g. "SEK") to units per 1 EUR.
+        """
+        rates = await self.get_rates()
+        rate_map = {rate.quote: rate.rate for rate in rates}
+        rate_map["EUR"] = 1.0
+        return rate_map
+
+
+def extract_pairs(text: str, supported_currencies: set[str]) -> list[tuple[str, str]]:
+    """Extract amount-currency pairs from a message.
+
+    A pair is any word that exactly matches a supported currency code,
+    preceded by another word treated as the amount. Pairs are limited to
+    ``MAX_PAIRS_PER_MESSAGE``.
+
+    Args:
+        text: The message content to scan.
+        supported_currencies: Currency codes that are recognized.
+
+    Returns:
+        A list of ``(amount, currency)`` tuples in order of appearance.
+    """
+    words = text.replace("\n", " ").split()
+    pairs: list[tuple[str, str]] = []
+    for index, word in enumerate(words):
+        if index == 0:
+            continue
+        if word.upper() in supported_currencies:
+            pairs.append((words[index - 1], word.upper()))
+    if pairs:
+        logger.debug("Currency pairs found: %s", pairs)
+    return list(islice(pairs, 0, MAX_PAIRS_PER_MESSAGE))
+
+
+def validate_pair(amount: str, currency: str) -> bool:
+    """Check that an amount-currency pair is a plausible conversion request.
+
+    The amount must be a non-negative number below ``MAX_AMOUNT``.
+
+    Args:
+        amount: The raw amount string from the message.
+        currency: The currency code following the amount.
+
+    Returns:
+        True if the pair passes all checks, False otherwise.
+    """
+    if not amount.replace(".", "", 1).isdigit():
+        logger.debug("Validation failed, not a number: %s %s", amount, currency)
+        return False
+    if float(amount) >= MAX_AMOUNT:
+        logger.debug("Validation failed, amount too large: %s %s", amount, currency)
+        return False
+    return True
+
+
+def convert_pair(
+    amount: float, currency: str, rate_map: dict[str, float]
+) -> Conversion:
+    """Convert an amount in one currency into all other supported currencies.
+
+    Conversion goes through EUR: the amount is divided by its currency's
+    EUR rate, then multiplied by each other currency's rate.
+
+    Args:
+        amount: The validated amount.
+        currency: The currency code the amount is denominated in.
+        rate_map: Mapping of currency code to units per 1 EUR.
+
+    Returns:
+        The conversion result, excluding the original currency from the targets.
+    """
+    in_eur = amount / rate_map[currency]
+    converted = {
+        code: in_eur * rate for code, rate in rate_map.items() if code != currency
+    }
+    return Conversion(amount=amount, currency=currency, converted=converted)
+
+
+def convert_from_message(text: str, rate_map: dict[str, float]) -> list[Conversion]:
+    """Find, validate, and convert all currency amounts mentioned in a message.
+
+    Args:
+        text: The message content to scan.
+        rate_map: Mapping of currency code to units per 1 EUR.
+
+    Returns:
+        One conversion per valid amount-currency pair found.
+    """
+    conversions: list[Conversion] = []
+    for amount_str, currency in extract_pairs(text, set(rate_map)):
+        if validate_pair(amount_str, currency):
+            conversions.append(convert_pair(float(amount_str), currency, rate_map))
+    return conversions
+
+
+def pretty_print_conversions(conversions: list[Conversion]) -> str:
+    """Build a Discord message listing each amount and its converted values.
+
+    Each conversion is wrapped in a code block, e.g.
+    ```100 SEK is: 8.75 EUR  76.06 DKK  ...```
+
+    Args:
+        conversions: The conversions to render.
+
+    Returns:
+        The formatted message string.
+    """
+    blocks: list[str] = []
+    for conv in conversions:
+        parts = [f"{round(value, 2)} {code}" for code, value in conv.converted.items()]
+        block = f"{round(conv.amount, 2)} {conv.currency} is: " + "  ".join(parts)
+        blocks.append(f"```{block}```")
+    return "\n".join(blocks)
+
+
+class CurrencyCog(MessageWatcherCog):
+    """Watches the channel for messages mentioning currency amounts and replies with conversions."""
+
+    def __init__(
+        self, bot: PDEUBot, watch_channel_id: int, client: ExchangeRateClient
+    ) -> None:
+        super().__init__(bot, watch_channel_id)
+        self.client = client
+
+    async def handle(self, message: discord.Message) -> None:
+        rate_map = await self.client.get_rate_map()
+        conversions = convert_from_message(message.content, rate_map)
+        if not conversions:
+            return
+        logger.debug(
+            "Converting %d currency pair(s) from message %s",
+            len(conversions),
+            message.id,
+        )
+        await message.channel.send(pretty_print_conversions(conversions))
+
+    async def cog_unload(self) -> None:
+        await self.client.close()
+
+
+async def setup(bot: PDEUBot) -> None:
+    await bot.add_cog(
+        CurrencyCog(bot, bot.watch_channel_id, ExchangeRateClient(EXCHANGE_RATES_URL))
+    )
+    logger.info("Loaded cog %s", __name__)
+
 
 async def main() -> None:
-    client = ExchangeRateClient(
-        "https://api.frankfurter.dev/v2/rates?quotes=SEK,DKK,CZK,GBP,AUD,EUR"
-    )
+    client = ExchangeRateClient(EXCHANGE_RATES_URL)
     try:
         rates = await client.get_rates()  # first fetch is from network or disc cache
         logger.info(f"Loaded {len(rates)} rates")

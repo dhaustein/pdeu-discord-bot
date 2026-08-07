@@ -39,6 +39,7 @@ if not WATCH_CHANNEL_ID:
 # Each entry is a Python module path resolvable from the project root.
 INITIAL_COGS = [
     "cogs.nice",
+    "cogs.currency",
     # "cogs.example",  # Uncomment to enable the template cog.
 ]
 
