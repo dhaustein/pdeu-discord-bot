@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
+import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -108,8 +110,18 @@ class ExchangeRateClient:
         }
         self._cache_path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = self._cache_path.with_suffix(self._cache_path.suffix + ".tmp")
-        tmp_path.write_text(json.dumps(payload), encoding="utf-8")
-        tmp_path.replace(self._cache_path)
+
+        # Write to temporary file
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f)
+            f.flush()
+            os.fsync(f.fileno())
+
+        os.replace(tmp_path, self._cache_path)
+
+        logger.debug(
+            f"Saved {len(self._cache)} exchange rates to disc cache at {self._cache_path}"
+        )
 
     async def get_rates(self) -> list[ExchangeRate]:
         """Return exchange rates, fetching from the network only when the cache is stale.
@@ -130,7 +142,14 @@ class ExchangeRateClient:
             return self._cache
 
         resp = await self._client.get(self._url)
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except httpx.HTTPStatusError:
+            logger.exception(
+                f"Exchange rate request to {self._url} failed with status {resp.status_code}"
+            )
+            raise
+        logger.info(f"Received exchange rate API response: {resp.text}")
         self._cache = parse_ndjson(resp.text)
         self._last_fetched = time.time()
         self._save_to_disc()
