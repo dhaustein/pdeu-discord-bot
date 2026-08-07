@@ -28,13 +28,11 @@ class MessageWatcherCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message) -> None:
-        # Shared guards — applied to every message before dispatch.
-        # 1. Ignore all bots (including ourselves) — prevents feedback loops
-        #    and stops the bot from reacting to other bots.
+        # Ignore all bots (including ourselves)
         if message.author.bot:
             logger.debug("Ignoring bot author %s", message.author)
             return
-        # 2. Only watch the configured channel.
+        # Only watch the configured channel.
         if message.channel.id != self.watch_channel_id:
             logger.debug(
                 "Message %s outside watched channel %s",

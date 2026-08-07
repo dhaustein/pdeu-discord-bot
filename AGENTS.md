@@ -43,6 +43,7 @@ class GreetingCog(commands.Cog):
         if "hello" in message.content:
             await message.channel.send("hi")
 
+
 def get_watched_channel():
     return bot.get_channel(settings.CHANNEL_ID)
 ```
@@ -62,7 +63,10 @@ class GreetingCog(commands.Cog):
         if "hello" in message.content.lower():
             await message.channel.send("hi")
 
-def get_watched_channel(bot: commands.Bot, channel_id: int) -> discord.TextChannel | None:
+
+def get_watched_channel(
+    bot: commands.Bot, channel_id: int
+) -> discord.TextChannel | None:
     """Return the watched channel object, or None if not found.
 
     Args:

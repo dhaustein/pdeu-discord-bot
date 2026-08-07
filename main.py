@@ -53,6 +53,9 @@ bot = PDEUBot(watch_channel_id=WATCH_CHANNEL_ID, command_prefix="!", intents=int
 
 @bot.event
 async def on_ready() -> None:
+    if bot.user is None:
+        logger.error("Bot user is None in on_ready event")
+        return
     logger.info("Logged in as %s (id: %s)", bot.user, bot.user.id)
     logger.info("Watching channel %s", WATCH_CHANNEL_ID)
     logger.info("Loaded cogs: %s", ", ".join(bot.cogs.keys()) or "(none)")

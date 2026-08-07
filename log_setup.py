@@ -18,6 +18,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+import typing
 
 DEFAULT_LEVEL: int = logging.INFO
 LOG_FORMAT: str = "%(asctime)s %(levelname)-8s %(name)s: %(message)s"
@@ -28,7 +29,7 @@ ENV_LEVEL_VAR: str = "PDEU_LOG_LEVEL"
 DEFAULT_DISCORD_LEVEL: int = logging.INFO
 
 
-def _stdout_handler() -> logging.StreamHandler:
+def _stdout_handler() -> logging.StreamHandler[typing.TextIO]:
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(logging.Formatter(LOG_FORMAT))
     return handler

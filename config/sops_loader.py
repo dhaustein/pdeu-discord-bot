@@ -12,9 +12,10 @@ Keys are upper-cased on load (``discord_token`` -> ``DISCORD_TOKEN``) and the
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 import yaml
+from dynaconf import LazySettings
 from dynaconf.loaders.base import SourceMetadata
 from dynaconf.utils.parse_conf import parse_conf_data
 
@@ -36,11 +37,11 @@ def _run_sops_decrypt(path: str) -> tuple[bytes, bytes, int]:
 
 
 def load(
-    obj,
+    obj: LazySettings,
     env: str = "DEVELOPMENT",
     silent: bool = True,
-    key: Optional[str] = None,
-    filename: Optional[str] = None,
+    key: str | None = None,
+    filename: str | None = None,
 ) -> None:
     """Decrypt *filename* (or ``secrets.yaml``) and merge it into *obj*.
 
@@ -71,19 +72,12 @@ def load(
         return
 
     try:
-        data: dict[str, Any] = yaml.safe_load(stdout) or {}
+        raw_data = yaml.safe_load(stdout)
+        data: dict[str, Any] = raw_data if isinstance(raw_data, dict) else {}
     except yaml.YAMLError as exc:
         if not silent:
             raise
         logger.warning("Failed to parse decrypted YAML from %s: %s", secrets_path, exc)
-        return
-
-    if not isinstance(data, dict):
-        logger.warning(
-            "SOPS file %s did not decode to a mapping (got %s); skipping.",
-            secrets_path,
-            type(data).__name__,
-        )
         return
 
     source_metadata = SourceMetadata(

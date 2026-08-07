@@ -8,5 +8,20 @@ dependencies = [
     "discord.py>=2.7.1",
     "dynaconf>=3.3.4",
     "httpx>=0.28.1",
+    "mypy>=2.3.0",
     "pyyaml>=6.0.3",
+    "ruff>=0.16.1",
 ]
+
+[tool.mypy]
+# Ignore missing library stubs (import-untyped errors)
+ignore_missing_imports = true
+strict = true
+
+warn_unreachable = true
+warn_unused_ignores = true
+
+# Discord.py specific settings
+[[tool.mypy.overrides]]
+module = ["discord.*"]
+ignore_missing_imports = true
