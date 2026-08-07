@@ -9,6 +9,9 @@ wheels/
 # Virtual environments
 .venv
 
+# Make build stamp
+.build-stamp
+
 # Legacy env-based config (no longer used; kept ignored in case of leftovers)
 .env
 .env.*

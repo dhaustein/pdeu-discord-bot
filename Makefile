@@ -1,7 +1,10 @@
-.PHONY: help install lint format test build run clean
+.PHONY: help install lint format test run run-debug img-clean
 
 IMAGE_NAME ?= pdeu-discord-bot
 IMAGE_TAG ?= latest
+
+BUILD_STAMP := .build-stamp
+SOURCES := $(shell find cogs config -name '*.py') $(wildcard *.py) Containerfile pyproject.toml uv.lock
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
@@ -19,13 +22,16 @@ format: ## Format code with ruff
 test: ## Run tests
 	uv run pytest
 
-build: ## Build the container image using Podman
+build: $(BUILD_STAMP) ## Build the container image using Podman (rebuilds when sources change)
+
+$(BUILD_STAMP): $(SOURCES)
 	podman build \
 		--file Containerfile \
 		--tag $(IMAGE_NAME):$(IMAGE_TAG) \
 		.
+	@touch $(BUILD_STAMP)
 
-run: ## Run the container using Podman. Usage: PDEU_DISCORD_TOKEN=... make run
+run: build ## Run the container using Podman. Usage: PDEU_DISCORD_TOKEN=... make run
 	podman run --rm -d \
 		--name $(IMAGE_NAME) \
 		--env PDEU_DISCORD_TOKEN \
@@ -33,7 +39,7 @@ run: ## Run the container using Podman. Usage: PDEU_DISCORD_TOKEN=... make run
 		--volume $(IMAGE_NAME)-data:/app/data:Z \
 		$(IMAGE_NAME):$(IMAGE_TAG)
 
-run-debug: ## TODO comment
+run-debug: build ## Run the container using Podman, with DEBUG level logging on
 	podman run --rm -d \
 		--name $(IMAGE_NAME) \
 		--env PDEU_DISCORD_TOKEN \
@@ -44,3 +50,4 @@ run-debug: ## TODO comment
 
 img-clean: ## Remove the :latest container image from local registry
 	podman rmi $(IMAGE_NAME):$(IMAGE_TAG)
+	rm -f $(BUILD_STAMP)

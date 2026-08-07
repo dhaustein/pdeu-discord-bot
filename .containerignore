@@ -13,6 +13,9 @@ wheels/
 # Virtual environments
 .venv
 
+# Make build stamp
+.build-stamp
+
 # Env files
 .env
 .env.*
