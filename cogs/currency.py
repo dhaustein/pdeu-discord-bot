@@ -22,6 +22,8 @@ DEFAULT_CACHE_PATH = Path("data/exchange_rates.json")
 EXCHANGE_RATES_URL = (
     "https://api.frankfurter.dev/v2/rates?quotes=SEK,DKK,CZK,GBP,AUD,EUR"
 )
+# Currency codes recognized in messages; must match the quotes in EXCHANGE_RATES_URL plus EUR.
+SUPPORTED_CURRENCIES: set[str] = {"SEK", "DKK", "CZK", "GBP", "AUD", "EUR"}
 
 # Hard limit on how many amount-currency pairs are converted per message.
 MAX_PAIRS_PER_MESSAGE = 5
@@ -335,6 +337,9 @@ class CurrencyCog(MessageWatcherCog):
         self.client = client
 
     async def handle(self, message: discord.Message) -> None:
+        # Scan for currency mentions before touching the rate cache or network.
+        if not extract_pairs(message.content, SUPPORTED_CURRENCIES):
+            return
         rate_map = await self.client.get_rate_map()
         conversions = convert_from_message(message.content, rate_map)
         if not conversions:
