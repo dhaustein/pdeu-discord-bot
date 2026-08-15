@@ -102,6 +102,7 @@ class ExchangeRateClient:
         )
         self._cache: list[ExchangeRate] | None = None
         self._last_fetched: float = 0.0
+        self._fetch_lock = asyncio.Lock()
 
     @property
     def _is_stale(self) -> bool:
@@ -173,13 +174,18 @@ class ExchangeRateClient:
         """Return exchange rates, fetching from the network only when the cache is stale.
 
         On first use the cache is loaded from disc, so a fresh cache survives
-        process and container restarts.
+        process and container restarts. Refetches are serialized: concurrent
+        callers trigger exactly one network fetch. If a refresh fails and a
+        stale cache exists, the stale cache is served instead of raising, and
+        the next call retries the fetch.
 
         Returns:
-            The cached rates if still fresh, otherwise freshly fetched and parsed rates.
+            The cached rates if fresh, the stale cache if a refresh failed,
+            otherwise freshly fetched and parsed rates.
 
         Raises:
-            httpx.HTTPStatusError: If the remote endpoint responds with an error status.
+            httpx.HTTPError: If the remote endpoint fails and no cached rates
+                are available.
         """
         if self._cache is None:
             self._load_from_disc()
@@ -190,22 +196,36 @@ class ExchangeRateClient:
             )
             return self._cache
 
-        logger.debug(
-            f"Exchange rate cache is stale or missing; fetching from {self._url}"
-        )
-        resp = await self._client.get(self._url)
-        try:
-            resp.raise_for_status()
-        except httpx.HTTPStatusError:
-            logger.exception(
-                f"Exchange rate request to {self._url} failed with status {resp.status_code}"
+        async with self._fetch_lock:
+            # Re-check under the lock: a coroutine ahead of us may have
+            # already refreshed the cache while we waited.
+            if not self._is_stale and self._cache is not None:
+                logger.debug(
+                    f"Serving {len(self._cache)} cached exchange rates refreshed while waiting for the fetch lock"
+                )
+                return self._cache
+
+            logger.debug(
+                f"Exchange rate cache is stale or missing; fetching from {self._url}"
             )
-            raise
-        logger.info(f"Received exchange rate API response: {resp.text}")
-        self._cache = parse_rates(resp.text)
-        self._last_fetched = time.time()
-        self._save_to_disc()
-        return self._cache
+            try:
+                resp = await self._client.get(self._url)
+                resp.raise_for_status()
+            except httpx.HTTPError as exc:
+                if self._cache is not None:
+                    logger.warning(
+                        f"Exchange rate refresh from {self._url} failed ({exc}); serving {len(self._cache)} stale cached rates"
+                    )
+                    return self._cache
+                logger.exception(
+                    f"Exchange rate request to {self._url} failed and no cached rates are available"
+                )
+                raise
+            logger.info(f"Received exchange rate API response: {resp.text}")
+            self._cache = parse_rates(resp.text)
+            self._last_fetched = time.time()
+            self._save_to_disc()
+            return self._cache
 
     async def close(self) -> None:
         """Close the underlying HTTP client."""
