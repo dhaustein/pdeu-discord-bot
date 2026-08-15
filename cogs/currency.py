@@ -367,7 +367,14 @@ class CurrencyCog(MessageWatcherCog):
         # Scan for currency mentions before touching the rate cache or network.
         if not extract_pairs(message.content, SUPPORTED_CURRENCIES):
             return
-        rate_map = await self.client.get_rate_map()
+        try:
+            rate_map = await self.client.get_rate_map()
+        except httpx.HTTPError:
+            logger.exception(
+                "Failed to fetch exchange rates; skipping conversion for message %s",
+                message.id,
+            )
+            return
         conversions = convert_from_message(message.content, rate_map)
         if not conversions:
             return
