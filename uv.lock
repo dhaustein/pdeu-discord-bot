@@ -492,8 +492,12 @@ dependencies = [
     { name = "discord-py" },
     { name = "dynaconf" },
     { name = "httpx" },
-    { name = "mypy" },
     { name = "pyyaml" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
     { name = "ruff" },
 ]
 
@@ -502,8 +506,12 @@ requires-dist = [
     { name = "discord-py", specifier = ">=2.7.1" },
     { name = "dynaconf", specifier = ">=3.3.4" },
     { name = "httpx", specifier = ">=0.28.1" },
-    { name = "mypy", specifier = ">=2.3.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=2.3.0" },
     { name = "ruff", specifier = ">=0.16.1" },
 ]
 

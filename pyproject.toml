@@ -8,8 +8,12 @@ dependencies = [
     "discord.py>=2.7.1",
     "dynaconf>=3.3.4",
     "httpx>=0.28.1",
-    "mypy>=2.3.0",
     "pyyaml>=6.0.3",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=2.3.0",
     "ruff>=0.16.1",
 ]
 
