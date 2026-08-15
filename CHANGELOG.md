@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.1](https://github.com/dhaustein/pdeu-discord-bot/compare/v0.2.0...v0.2.1) (2026-08-15)
+
+
+### Bug Fixes
+
+* **currency:** salvage usable rates from malformed disc cache ([c20f0e1](https://github.com/dhaustein/pdeu-discord-bot/commit/c20f0e1c16b8fd472ce0f5794d03193921c83b2c))
+* **currency:** serialize refetches and serve stale cache on refresh failure ([7dc3e29](https://github.com/dhaustein/pdeu-discord-bot/commit/7dc3e295f125cdea352d8144947cdc408739d36c))
+* **currency:** skip conversion when rate fetch fails with no cache ([677eb47](https://github.com/dhaustein/pdeu-discord-bot/commit/677eb47bc49d820cde8e3d9dc8dc8ddc99473a16))
+* **currency:** treat malformed disc cache as cache miss ([09fe13a](https://github.com/dhaustein/pdeu-discord-bot/commit/09fe13af641026396ab1e3c6d264f56767e19fe8))
+
 ## [0.2.0](https://github.com/dhaustein/pdeu-discord-bot/compare/v0.1.0...v0.2.0) (2026-08-07)
 
 
