@@ -126,9 +126,16 @@ class ExchangeRateClient:
                 f"Exchange rate cache at {self._cache_path} is corrupt; will refetch"
             )
             return False
-        rates = [ExchangeRate(**entry) for entry in payload["rates"]]
+        try:
+            rates = [ExchangeRate(**entry) for entry in payload["rates"]]
+            fetched_at = float(payload["fetched_at"])
+        except (TypeError, KeyError, ValueError):
+            logger.warning(
+                f"Exchange rate cache at {self._cache_path} has an unexpected shape; will refetch"
+            )
+            return False
         self._cache = rates
-        self._last_fetched = float(payload["fetched_at"])
+        self._last_fetched = fetched_at
         logger.info(
             f"Loaded {len(rates)} exchange rates from disc cache at {self._cache_path}"
         )
