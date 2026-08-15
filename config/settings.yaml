@@ -4,13 +4,18 @@
 # The active environment is chosen via ENV_FOR_DYNACONF (default: development).
 # Secrets live in secrets.yaml (SOPS-encrypted) and are merged on top of these
 # values; env vars prefixed with PDEU_ take the highest precedence.
+# Container images ship without secrets.yaml — there every secret comes from
+# PDEU_* env vars injected at runtime (see Makefile `run` / `run-debug`).
 
 default:
-  # Channel the bot watches for trigger phrases. Replace with your real channel ID.
+  # Channel the bot watches for trigger phrases. Replace with your real
+  # channel ID, or override at runtime with PDEU_WATCH_CHANNEL_ID.
   watch_channel_id: 0
 
-  # Discord bot token. Lives in secrets.yaml, not here. Declared here only so
-  # the key is documented and validators can fail loudly when it's missing.
+  # Discord bot token. Placeholder only — the real value comes from
+  # secrets.yaml (local, SOPS-encrypted) or PDEU_DISCORD_TOKEN (containers
+  # have no secrets.yaml). Kept empty so main.py fails fast with a clear
+  # message when no source provides it.
   discord_token: ""
 
   # Effective log level for the bot's own logging (DEBUG/INFO/WARNING/ERROR).

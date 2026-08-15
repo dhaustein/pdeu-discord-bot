@@ -4,7 +4,7 @@ IMAGE_NAME ?= pdeu-discord-bot
 IMAGE_TAG ?= latest
 
 BUILD_STAMP := .build-stamp
-SOURCES := $(shell find cogs config -name '*.py') $(wildcard *.py) Containerfile pyproject.toml uv.lock
+SOURCES := $(shell find cogs config -name '*.py') $(wildcard *.py) Containerfile .containerignore pyproject.toml uv.lock
 
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'

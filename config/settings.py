@@ -4,7 +4,8 @@ Configuration sources, in increasing precedence:
 
 1. ``config/settings.yaml`` — non-secret, version-controlled defaults.
 2. ``secrets.yaml`` — SOPS + age encrypted secrets (decrypted by our custom
-   loader in ``config/sops_loader.py``).
+   loader in ``config/sops_loader.py``). Absent from container images, so
+   in containers this layer contributes nothing.
 3. ``DYNACONF_*`` / ``PDEU_*`` environment variables — for local overrides
    and CI/deploys where you don't want to re-encrypt just to tweak a value.
 
