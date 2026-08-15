@@ -112,8 +112,12 @@ class ExchangeRateClient:
     def _load_from_disc(self) -> bool:
         """Populate the in-memory cache from the on-disc cache file, if present.
 
+        The load is best effort: malformed rate entries are skipped, and a
+        missing or unreadable timestamp marks the salvaged rates as stale so
+        they are only served as a fallback when a refresh fails.
+
         Returns:
-            True if a usable cache was loaded, False otherwise.
+            True if at least one usable rate was loaded, False otherwise.
         """
         try:
             payload = json.loads(self._cache_path.read_text(encoding="utf-8"))
@@ -127,14 +131,37 @@ class ExchangeRateClient:
                 f"Exchange rate cache at {self._cache_path} is corrupt; will refetch"
             )
             return False
-        try:
-            rates = [ExchangeRate(**entry) for entry in payload["rates"]]
-            fetched_at = float(payload["fetched_at"])
-        except (TypeError, KeyError, ValueError):
+        # Best effort: salvage whatever the payload contains so a partially
+        # malformed cache can still serve as a last-resort fallback when the
+        # network is unavailable.
+        entries = payload.get("rates") if isinstance(payload, dict) else None
+        if not isinstance(entries, list):
             logger.warning(
-                f"Exchange rate cache at {self._cache_path} has an unexpected shape; will refetch"
+                f"Exchange rate cache at {self._cache_path} contains no rates; will refetch"
             )
             return False
+        rates: list[ExchangeRate] = []
+        for entry in entries:
+            try:
+                rates.append(ExchangeRate(**entry))
+            except TypeError:
+                logger.warning(
+                    f"Skipping malformed entry in exchange rate cache at {self._cache_path}: {entry!r}"
+                )
+        if not rates:
+            logger.warning(
+                f"Exchange rate cache at {self._cache_path} contains no usable rates; will refetch"
+            )
+            return False
+        try:
+            fetched_at = float(payload["fetched_at"])
+        except (KeyError, TypeError, ValueError):
+            # Unknown age: mark as stale so the next call refetches, but keep
+            # the salvaged rates as a fallback.
+            logger.warning(
+                f"Exchange rate cache at {self._cache_path} has an unreadable timestamp; treating salvaged rates as stale"
+            )
+            fetched_at = 0.0
         self._cache = rates
         self._last_fetched = fetched_at
         logger.info(
