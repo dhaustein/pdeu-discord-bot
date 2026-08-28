@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.2](https://github.com/dhaustein/pdeu-discord-bot/compare/v0.2.1...v0.2.2) (2026-08-28)
+
+
+### Bug Fixes
+
+* **container:** copy lockfiles instead of bind mounting to resolve SELinux build errors ([d21b531](https://github.com/dhaustein/pdeu-discord-bot/commit/d21b5310a3b042ec23830138cf07390407a9f60c))
+
 ## [0.2.1](https://github.com/dhaustein/pdeu-discord-bot/compare/v0.2.0...v0.2.1) (2026-08-15)
 
 
