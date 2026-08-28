@@ -1,42 +1,32 @@
 # pdeu-discord-bot
 
-A Discord bot that watches a specific channel and replies `hello world` whenever it sees the word `Nice` (as a standalone word, surrounded by whitespace).
+A Discord bot for the PlayDateEU gaming community. It watches one configured channel and reacts to messages: it quips back at `nice` (and one specific AI-overlord invocation), and converts mentioned currency amounts into every supported currency on the fly.
 
 ## Features
 
 - Watches a single configurable channel.
-- Replies `hello world` when any configured trigger phrase appears as a standalone word.
+- **NiceCog**: replies with a random community one-liner when Patropolis says `nice` (or `nice.` / `nice!`), and answers "I for one welcome our AI overlords." with "you will be killed last".
+- **CurrencyCog**: when a message mentions `<amount> <code>` pairs in SEK, DKK, CZK, GBP, AUD, or EUR, replies with each amount converted to all other supported currencies, using [Frankfurter](https://frankfurter.dev) exchange rates with a 24-hour on-disc cache.
 - Ignores all bot messages (including its own) to prevent feedback loops.
 - Modular **cog-based architecture**: each feature is a self-contained file under `cogs/`. Add a new feature by dropping in a new cog — no edits to existing code.
 - **Dynaconf + SOPS + age** configuration: non-secret config is version-controlled in YAML, secrets are encrypted at rest with [age](https://github.com/FiloSottile/age) via [SOPS](https://github.com/getsops/sops).
+- Containerized via `Containerfile`, with CI and automated releases (release-please) publishing images to GHCR.
 
 ## Architecture
 
-The bot uses `discord.py`'s `commands.Bot` and the **cog** pattern. Each feature is a class that extends `MessageWatcherCog`, which centralizes the shared guards (ignore bots, channel filter). Feature cogs only implement `handle(message)`.
+The bot uses `discord.py`'s `commands.Bot` and the **cog** pattern. `PDEUBot` (in `bot.py`) is a thin `commands.Bot` subclass that carries the watched channel ID so cogs can read it in their `setup()`. Each feature is a class that extends `MessageWatcherCog`, which centralizes the shared guards (ignore bots, channel filter). Feature cogs only implement `handle(message)`.
 
 ```
 pdeu-discord-bot/
-├── .sops.yaml            # SOPS config: which age recipient(s) to encrypt for
-├── .gitignore
-├── .python-version
-├── README.md
-├── log_setup.py          # Two-phase logging config (stdout; DEBUG via PDEU_LOG_LEVEL)
-├── main.py               # Entry point: creates Bot, loads cogs, runs
-├── pyproject.toml        # Project metadata and dependencies
-├── config/
-│   ├── __init__.py       # Re-exports the singleton `settings`
-│   ├── settings.py       # Dynaconf instance: sources, loaders, env selection
-│   ├── settings.yaml     # Non-secret, version-controlled config (per-env)
-│   └── sops_loader.py    # Custom dynaconf loader: decrypts secrets.yaml
-├── age/
-│   └── README.txt        # Where age/keys.txt lives (gitignored)
-├── secrets.example.yaml  # Plaintext template for the encrypted secrets file
-├── secrets.yaml          # SOPS-encrypted secrets (created during setup)
-└── cogs/
-    ├── __init__.py
-    ├── base.py           # MessageWatcherCog — shared guards (bots, channel)
-    ├── hello_world.py    # "Nice" → "hello world"
-    └── example.py        # Template for new feature cogs
+├── main.py          # Entry point: creates Bot, loads cogs, runs
+├── bot.py           # PDEUBot — commands.Bot subclass carrying shared config
+├── log_setup.py     # Logging config (stdout)
+├── config/          # Dynaconf settings + SOPS loader for secrets.yaml
+└── cogs/            # One module per feature
+    ├── base.py      # MessageWatcherCog — shared guards (bots, channel)
+    ├── nice.py      # "nice" quips + AI-overlord gag
+    ├── currency.py  # Currency conversion (Frankfurter API + disc cache)
+    └── example.py   # Template for new feature cogs
 ```
 
 ### Configuration loading order
@@ -58,29 +48,13 @@ flowchart TD
     S --> Cogs
 ```
 
-### Message dispatch flow
-
-```mermaid
-flowchart TD
-    M[Message received] --> D[discord.py dispatches to all cogs]
-    D --> L1[HelloWorldCog.on_message]
-    D --> L2[ExampleCog.on_message]
-    L1 --> G1{base guards pass?}
-    L2 --> G2{base guards pass?}
-    G1 -- yes --> H1[HelloWorldCog.handle]
-    G2 -- yes --> H2[ExampleCog.handle]
-    G1 -- no --> X[skip]
-    G2 -- no --> X
-```
-
-Each cog independently decides whether to act, so multiple features can react to the same message, or just one. The shared guards run per-cog from `MessageWatcherCog`, so there's no duplication.
-
 ## Prerequisites
 
 - Python 3.14+
 - [uv](https://github.com/astral-sh/uv) (or any modern Python toolchain)
 - [age](https://github.com/FiloSottile/age#installation) — for key generation and as the SOPS backend
 - [sops](https://github.com/getsops/sops#download) — for encrypting/decrypting `secrets.yaml`
+- [Podman](https://podman.io) — optional, for the containerized `make build` / `make run` targets
 - A Discord application with a bot user (create one at <https://discord.com/developers/applications>).
 
 ## Discord Setup
@@ -93,7 +67,7 @@ Each cog independently decides whether to act, so multiple features can react to
 
 ## Configuration
 
-This project uses [Dynaconf](https://www.dynaconf.com/) for configuration and [SOPS](https://github.com/getsops/sops) + [age](https://github.com/FiloSottile/age) for secrets management. Non-secret config lives in `config/settings.yaml` (version-controlled); secrets live in `secrets.yaml` (SOPS-encrypted, also committed but unreadable without the private key).
+This project uses [Dynaconf](https://www.dynaconf.com/) for configuration and [SOPS](https://github.com/getsops/sops) + [age](https://github.com/FiloSottile/age) for secrets management. Non-secret config lives in `config/settings.yaml` (version-controlled); secrets live in `secrets.yaml` (SOPS-encrypted, **gitignored** — created during the setup below; only the `secrets.example.yaml` template is committed).
 
 ### One-time setup
 
@@ -112,6 +86,7 @@ sops --version
 #### 2. Generate an age keypair
 
 ```sh
+mkdir -p age
 age-keygen -o age/keys.txt
 ```
 
@@ -127,7 +102,7 @@ The `# public key:` line is what you share with sops; the `AGE-SECRET-KEY-1...` 
 
 #### 3. Register the public key with SOPS
 
-Open `.sops.yaml` and replace the placeholder `age: ...` recipient with your real public key (the `age1...` string from `age/keys.txt`):
+Open `.sops.yaml` and replace the placeholder `age1xxx...` recipient with your real public key (the `age1...` string from `age/keys.txt`):
 
 ```yaml
 creation_rules:
@@ -245,9 +220,9 @@ Every push to `main` and every pull request runs the [CI workflow](.github/workf
 Releases are fully automated with [release-please](https://github.com/googleapis/release-please), driven by [conventional commits](https://www.conventionalcommits.org/):
 
 1. Merge PRs to `main` using conventional commit messages (`feat: ...`, `fix: ...`, etc.).
-2. release-please maintains a **Release PR** that bumps `version` in `pyproject.toml` and updates `CHANGELOG.md` based on those commits.
+2. release-please maintains a **Release PR** that bumps `version` in `pyproject.toml` and the `VERSION` file, and updates `CHANGELOG.md`, based on those commits.
 3. Merging the Release PR creates the git tag (`vX.Y.Z`) and the GitHub Release.
-4. The [Release Image workflow](.github/workflows/release-image.yaml) then builds the container image, pushes it to GHCR as `ghcr.io/<owner>/pdeu-discord-bot:vX.Y.Z` and `:latest`, and appends the pull command + digest to the release notes.
+4. The [release-please workflow](.github/workflows/release-please.yaml) then runs its `build-and-push` job: it builds the container image, pushes it to GHCR as `ghcr.io/<owner>/pdeu-discord-bot:vX.Y.Z` and `:latest`, and appends the pull command + digest to the release notes.
 
 Version numbering is automatic: `fix:` → patch, `feat:` → minor, `feat!:`/`BREAKING CHANGE:` → major.
 
@@ -264,6 +239,8 @@ docker pull ghcr.io/<owner>/pdeu-discord-bot:latest
 
 ## Running
 
+### Locally
+
 ```sh
 uv run python main.py
 # or, in an active virtualenv:
@@ -272,21 +249,47 @@ python main.py
 
 On startup the bot prints its username, the watched channel, and the loaded cogs. If `DISCORD_TOKEN` or `WATCH_CHANNEL_ID` is missing, it exits with a clear message pointing back here.
 
-## How Triggering Works
+### In a container
 
-- The bot only reacts to messages in the channel specified by `WATCH_CHANNEL_ID`.
-- A message triggers a reply if any phrase in `TRIGGER_PHRASES` (defined in `cogs/hello_world.py`) appears surrounded by whitespace (i.e. as a standalone word). The message content is padded with spaces before matching, so phrases at the very start or end of a message also count.
-- Matching is **case-sensitive**. `"Nice"` triggers; `"nice"` and `"NICE"` do not.
-- Punctuation attached to a word (e.g. `"Nice!"`) will **not** trigger, because the word is not surrounded by whitespace on both sides.
-- The bot ignores every message whose author is a bot (itself included).
+```sh
+# Build (only rebuilds when sources change) and run detached, DEBUG logging off:
+PDEU_DISCORD_TOKEN=... PDEU_WATCH_CHANNEL_ID=... make run
 
-### Extending Triggers
+# Same with DEBUG level logging:
+PDEU_DISCORD_TOKEN=... PDEU_WATCH_CHANNEL_ID=... make run-debug
+```
 
-Add phrases to the list in `cogs/hello_world.py`:
+The image ships without `secrets.yaml` or SOPS (see `.containerignore`) — in containers every secret comes from `PDEU_*` environment variables injected at runtime. The `data/` directory (exchange rate cache) is a named volume (`pdeu-discord-bot-data`) so cached rates survive restarts.
+
+## How the Cogs Trigger
+
+Shared guards from `MessageWatcherCog` (`cogs/base.py`) run first for every cog: the bot only acts on messages in the channel specified by `WATCH_CHANNEL_ID`, and ignores every message whose author is a bot (itself included).
+
+### NiceCog (`cogs/nice.py`)
+
+- If **anyone** sends exactly `I for one welcome our AI overlords.` (case-sensitive, whole message), the bot replies: `Very well, you will be killed last, <author>!`
+- If **Patropolis** (a hard-coded Discord user ID in the cog) sends exactly `nice`, `nice.`, or `nice!` (case-insensitive, whole message), the bot replies with a random line from a fixed list of community one-liners.
+
+Matching is whole-message equality, not substring matching — `that was nice` does **not** trigger.
+
+To extend, add phrases to `NICE_LIST` in `cogs/nice.py`:
 
 ```python
-TRIGGER_PHRASES = ["Nice", "Cool", "Awesome"]
+NICE_LIST = ["nice", "nice.", "nice!", "noice"]
 ```
+
+### CurrencyCog (`cogs/currency.py`)
+
+- Scans the message for word pairs of the form `<amount> <CODE>` where `CODE` is one of `SEK`, `DKK`, `CZK`, `GBP`, `AUD`, `EUR` (case-insensitive), in order of appearance.
+- Up to 5 pairs per message; the amount must be a non-negative number below 100,000,000. Anything else is silently skipped.
+- Rates come from the [Frankfurter](https://frankfurter.dev) v2 API (EUR-based), cached on disc at `data/exchange_rates.json` for 24 hours. Writes are atomic, concurrent calls share a single network fetch, and a stale cache is served if a refresh fails (the next call retries).
+- For each valid pair the bot replies with a code block converting the amount into every other supported currency, e.g.:
+
+  ```
+  100 SEK is: 8.75 EUR  76.06 DKK  190.1 CZK  6.43 GBP  13.42 AUD
+  ```
+
+  Conversions go through EUR; the original currency is omitted from the result.
 
 ## Adding a New Feature Cog
 
@@ -298,7 +301,8 @@ To add a new message-driven behavior:
 
    ```python
    INITIAL_COGS = [
-       "cogs.hello_world",
+       "cogs.nice",
+       "cogs.currency",
        "cogs.reactions",  # new
    ]
    ```
@@ -309,16 +313,26 @@ No other changes needed. The shared guards (ignore bots, channel filter) are inh
 
 ```python
 # cogs/reactions.py
+import logging
+
 import discord
+
+from bot import PDEUBot
+
 from .base import MessageWatcherCog
+
+logger = logging.getLogger(__name__)
 
 
 class ReactionCog(MessageWatcherCog):
+    """Replies with a wave when someone says bye."""
+
     async def handle(self, message: discord.Message) -> None:
         if " bye " in f" {message.content} ":
             await message.channel.send("\U0001f44b")  # 👋
 
 
-async def setup(bot: commands.Bot) -> None:
+async def setup(bot: PDEUBot) -> None:
     await bot.add_cog(ReactionCog(bot, bot.watch_channel_id))
+    logger.info("Loaded cog %s", __name__)
 ```
