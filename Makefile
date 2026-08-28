@@ -19,7 +19,7 @@ lint: ## Run ruff and mypy
 format: ## Format code with ruff
 	uv run ruff format .
 
-test: ## Run tests
+test: ## Run tests (pytest-randomly shuffles order)
 	uv run pytest
 
 build: $(BUILD_STAMP) ## Build the container image using Podman (rebuilds when sources change)
