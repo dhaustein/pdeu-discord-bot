@@ -2,19 +2,16 @@
 #
 # Override per-environment by adding a [<env>] section (e.g. [production]).
 # The active environment is chosen via ENV_FOR_DYNACONF (default: development).
-# Secrets live in secrets.yaml (SOPS-encrypted) and are merged on top of these
-# values; env vars prefixed with PDEU_ take the highest precedence.
-# Container images ship without secrets.yaml — there every secret comes from
-# PDEU_* env vars injected at runtime (see Makefile `run` / `run-debug`).
+# Secrets and any other override come from PDEU_* env vars, which take the
+# highest precedence (see README.md → Configuration).
 
 default:
   # Channel the bot watches for trigger phrases. Replace with your real
   # channel ID, or override at runtime with PDEU_WATCH_CHANNEL_ID.
   watch_channel_id: 0
 
-  # Discord bot token. Placeholder only — the real value comes from
-  # secrets.yaml (local, SOPS-encrypted) or PDEU_DISCORD_TOKEN (containers
-  # have no secrets.yaml). Kept empty so main.py fails fast with a clear
+  # Discord bot token. Placeholder only — the real value comes from the
+  # PDEU_DISCORD_TOKEN env var. Kept empty so main.py fails fast with a clear
   # message when no source provides it.
   discord_token: ""
 
@@ -23,9 +20,10 @@ default:
   # with the PDEU_LOG_LEVEL env var.
   log_level: INFO
 
-  # Effective log level for the discord.py library logger (DEBUG/INFO/WARNING/ERROR).
-  # Pinned independently of `log_level` so enabling DEBUG for the bot doesn't
-  # flood output with gateway internals. Set to DEBUG to inspect discord.py logs.
+  # Effective log level for the discord.py library logger
+  # (DEBUG/INFO/WARNING/ERROR). Kept at INFO by default so enabling DEBUG for
+  # the bot doesn't flood output with gateway internals. Set to DEBUG to
+  # inspect discord.py logs.
   # Override at runtime with the PDEU_DISCORD_LOG_LEVEL env var.
   discord_log_level: INFO
 

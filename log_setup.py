@@ -2,9 +2,8 @@
 
 Phase 1 — :func:`preconfigure_logging`: installs a stdout handler on the root
 logger using only the ``PDEU_LOG_LEVEL`` environment variable. Must be called
-*before* ``from config import settings`` so that the SOPS loader (which runs
-during Dynaconf construction in :mod:`config.settings`) routes its import-time
-log lines to stdout rather than stderr.
+*before* ``from config import settings`` so settings-loaded log lines reach
+stdout rather than stderr.
 
 Phase 2 — :func:`setup_logging`: re-applies the handler and sets the
 authoritative level from ``settings.LOG_LEVEL`` (the ``PDEU_LOG_LEVEL`` env var
@@ -55,8 +54,8 @@ def _coerce_level(level: str | int | None) -> int:
 def preconfigure_logging() -> None:
     """Phase 1: stdout logging from the ``PDEU_LOG_LEVEL`` env var only.
 
-    Call before :mod:`config.settings` is imported so the SOPS loader's
-    import-time log lines reach stdout. Settings aren't loaded yet, so the
+    Call before :mod:`config.settings` is imported so settings-initiated log
+    lines reach stdout. Settings aren't loaded yet, so the
     level comes solely from the environment (default INFO).
     """
     root = logging.getLogger()

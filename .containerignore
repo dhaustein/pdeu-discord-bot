@@ -20,18 +20,6 @@ wheels/
 .env
 .env.*
 
-# SOPS secrets workflow — not used in containers; all secrets are injected
-# as environment variables at runtime (see Makefile `run` / `run-debug`).
-.sops.yaml
-secrets.yaml
-secrets.example.yaml
-secrets.*.decrypted.*
-*.decrypted.yaml
-
-# age key material (SOPS backend)
-age/
-*.agekey
-
 # Editor / OS noise
 .idea/
 .vscode/

@@ -15,17 +15,3 @@ wheels/
 # Legacy env-based config (no longer used; kept ignored in case of leftovers)
 .env
 .env.*
-
-# age private keys — NEVER commit these. Keep them safe; losing them means
-# losing access to the encrypted secrets.yaml.
-age/keys.txt
-age/*.txt
-age/*.key
-*.agekey
-
-# Plaintext secrets — only the SOPS-encrypted secrets.yaml is committed.
-secrets.yaml
-!secrets.example.yaml
-secrets.*.yaml
-secrets.*.decrypted.*
-*.decrypted.yaml
