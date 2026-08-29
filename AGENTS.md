@@ -1,6 +1,7 @@
 # AGENTS.md - AI Instructions for this Discord bot project
 
 ## Overview
+
 You are an expert Python software engineer and architect.
 
 This repository, **pdeu-discord-bot**, is a Python monorepo for a Discord bot running on the PlayDateEU gaming community Discord server.
@@ -8,12 +9,14 @@ This repository, **pdeu-discord-bot**, is a Python monorepo for a Discord bot ru
 It uses `uv` for package management and a `Makefile` for task orchestration.
 
 ## Repository Architecture
+
 * **Monorepo Structure:** Managed via `uv` Workspaces.
 * **`cogs`**: Cogs help organize code in the discord.py library. A Cog is a class for collection of commands, listeners, and state.
-* **`config`**: Dynaconf settings for the bot. Loads config from `settings.yaml` Uses Dynaconf SOPS loader to load secrets from `secrets.yaml`.
+* **`config`**: Dynaconf settings for the bot. Loads config from `settings.yaml`; secrets and overrides come from `PDEU_*` environment variables.
 * **Python Version**: Defined in `.python-version`.
 
 ## Tooling & Commands
+
 Always prefer using the `Makefile` over raw shell commands to ensure the `uv` environment is synced correctly.
 
 | Task | Command |
@@ -25,15 +28,18 @@ Always prefer using the `Makefile` over raw shell commands to ensure the `uv` en
 | **See all Make commands** | `make help` |
 
 ## Rules of Engagement
-1.  **Dependency Management**: Use `uv`. Do not suggest `pip install`.
-2.  **Code Style**:
+
+1. **Dependency Management**: Use `uv`. Do not suggest `pip install`.
+2. **Code Style**:
     * Use **Ruff** for linting and formatting.
     * Use **Mypy** for type checking; all new code must be fully typed. See root `pyproject.toml` for typing rules.
 3. **Docstrings**: We use Google style docstrings but without restating types, as that is infered from static typing hints.
 4. **Commits**: We use conventional commits, eg. `<type>[optional scope]: <description>`.
 
 ### Coding and Typing standards example
+
 BAD:
+
 ```python
 class GreetingCog(commands.Cog):
     def __init__(self, bot):
@@ -49,6 +55,7 @@ def get_watched_channel():
 ```
 
 GOOD:
+
 ```python
 class GreetingCog(commands.Cog):
     """Replies with a greeting when a user says hello in the watched channel."""
@@ -80,5 +87,6 @@ def get_watched_channel(
 ```
 
 ## Prohibited Actions
+
 * Do not modify the `uv.lock` file manually.
 * Do not warn about or reformat current Python exception syntax, we use the Python 3.14+ format (PEP 758) without parentheses.

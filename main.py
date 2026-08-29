@@ -7,10 +7,10 @@ import discord
 from bot import PDEUBot
 from log_setup import preconfigure_logging, setup_logging
 
-# Phase 1: configure stdout logging before importing `config` so the SOPS
-# loader (which runs during Dynaconf construction in `config.settings`) routes
-# its import-time log lines to stdout. Level comes from PDEU_LOG_LEVEL only;
-# settings aren't loaded yet. setup_logging() below finalizes from settings.
+# Phase 1: configure stdout logging before importing `config` (settings are
+# loaded during Dynaconf construction in `config.settings`). Level comes from
+# PDEU_LOG_LEVEL only; settings aren't loaded yet. setup_logging() below
+# finalizes from settings.
 preconfigure_logging()
 
 from config import settings
@@ -26,8 +26,8 @@ WATCH_CHANNEL_ID = settings.WATCH_CHANNEL_ID
 
 if not DISCORD_TOKEN:
     sys.exit(
-        "DISCORD_TOKEN is not set. Put it in secrets.yaml (SOPS-encrypted) "
-        "or export PDEU_DISCORD_TOKEN. See README.md → Configuration."
+        "DISCORD_TOKEN is not set. Export PDEU_DISCORD_TOKEN. "
+        "See README.md → Configuration."
     )
 if not WATCH_CHANNEL_ID:
     sys.exit(
