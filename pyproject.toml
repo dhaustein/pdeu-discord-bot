@@ -1,6 +1,6 @@
 [project]
 name = "pdeu-discord-bot"
-version = "0.1.0"
+version = "0.2.2"
 description = "PDEU gaming community Discord bot"
 readme = "README.md"
 requires-python = ">=3.14"

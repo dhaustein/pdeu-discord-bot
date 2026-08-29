@@ -9,8 +9,9 @@ SOURCES := $(shell find cogs config -name '*.py') $(wildcard *.py) Containerfile
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-install: ## Sync the uv environment
-	uv sync --locked
+install: ## Sync the uv environment (--frozen: release-please bumps pyproject.toml
+	# version without regenerating uv.lock, so version-only drift must not fail CI)
+	uv sync --frozen
 
 lint: ## Run ruff and mypy
 	uv run ruff check .

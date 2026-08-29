@@ -9,8 +9,10 @@ WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
 
+# --frozen: release-please bumps pyproject.toml version without regenerating
+# uv.lock (version-only drift), so skip lock validation here.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked --no-install-project --no-dev
+    uv sync --frozen --no-install-project --no-dev
 
 COPY . /app
 
