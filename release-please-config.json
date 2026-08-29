@@ -2,6 +2,9 @@
   "packages": {
     ".": {
       "release-type": "simple",
+      "extra-files": [
+        { "type": "plain", "path": "VERSION" }
+      ],
       "changelog-types": [
         { "type": "feat", "section": "Features" },
         { "type": "fix", "section": "Bug Fixes" },
