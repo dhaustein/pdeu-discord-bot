@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3](https://github.com/dhaustein/pdeu-discord-bot/compare/v0.2.2...v0.2.3) (2026-08-29)
+
+
+### Bug Fixes
+
+* include VERSION file in release pipeline ([69933e6](https://github.com/dhaustein/pdeu-discord-bot/commit/69933e6fc0f28f187be7a0ae7c197441341a9c78))
+* wrong release-please config type ([04cb7aa](https://github.com/dhaustein/pdeu-discord-bot/commit/04cb7aad1d13a72825392ca0c876e749e6424987))
+
 ## [0.2.2](https://github.com/dhaustein/pdeu-discord-bot/compare/v0.2.1...v0.2.2) (2026-08-28)
 
 
