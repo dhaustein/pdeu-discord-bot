@@ -1,0 +1,65 @@
+---
+# Kubernetes manifest for the pdeu-discord-bot Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pdeu-discord-bot
+  namespace: pdeu
+  labels:
+    app: pdeu-discord-bot
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: pdeu-discord-bot
+  template:
+    metadata:
+      labels:
+        app: pdeu-discord-bot
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+        - name: bot
+          # Image tag is bumped by the release workflow (release-please.yaml)
+          image: ghcr.io/dhaustein/pdeu-discord-bot:v0.2.3
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+          env:
+            - name: ENV_FOR_DYNACONF
+              value: production
+          envFrom:
+            # PDEU_DISCORD_TOKEN / PDEU_WATCH_CHANNEL_ID, created on the cluster
+            - secretRef:
+                name: pdeu-discord-bot-env
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+      volumes:
+        - name: data
+          # Exchange-rate cache, kept across restarts on a Longhorn PVC
+          persistentVolumeClaim:
+            claimName: pdeu-discord-bot-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pdeu-discord-bot-data
+  namespace: pdeu
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: longhorn
+  resources:
+    requests:
+      storage: 128Mi
