@@ -74,3 +74,21 @@ jobs:
           - Digest: \`${DIGEST}\`
           EOF
           gh release edit "$TAG" --notes-file release-notes.md
+
+      # GitOps: bump the pinned image tag in the ArgoCD-watched manifest so the
+      # cluster reconciles the new release. Runs after the push above, so the
+      # manifest never references an image that failed to build.
+      - name: Bump image tag in deploy manifests
+        env:
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: |
+          IMAGE="ghcr.io/dhaustein/pdeu-discord-bot"
+          sed -i "s|image: ${IMAGE}:.*|image: ${IMAGE}:${TAG}|" \
+            deploy/deployment.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deploy/deployment.yaml
+          git commit -m "chore(deploy): bump image to ${TAG}"
+          git pull --rebase origin main
+          git push origin main

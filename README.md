@@ -137,14 +137,16 @@ Version numbering is automatic: `fix:` → patch, `feat:` → minor, `feat!:`/`B
 
 ### Pulling the image
 
-The GHCR package is private (matching the repo), so authenticate first with a PAT that has `read:packages`:
+The GHCR package is public so pulling it needs no login, otherwise:
 
 ```sh
 echo "$GITHUB_TOKEN" | docker login ghcr.io -u <your-username> --password-stdin
 docker pull ghcr.io/<owner>/pdeu-discord-bot:latest
 ```
 
-**One-time step — link the package to the repo:** after the first image push, go to your GitHub profile → *Packages* → `pdeu-discord-bot` → *Package settings* → *Connect repository* → select `pdeu-discord-bot`. The image then appears in the repo sidebar and inherits the repo's access permissions.
+### GitOps deployment (ArgoCD)
+
+Releases deploy themselves: the `build-and-push` job ends by bumping the pinned image tag in [`deploy/deployment.yaml`](deploy/deployment.yaml) and pushing a `chore(deploy): bump image to vX.Y.Z` commit to `main`. ArgoCD (watching this repo, branch `main`, path `deploy`) picks the commit up within its ~3-minute poll interval and re-deploys the pod with the new tag. The bot always runs as a single replica (`strategy: Recreate`), so a release never has two bots online at once.
 
 ## Running
 
