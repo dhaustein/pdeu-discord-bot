@@ -22,7 +22,8 @@ RUN uv run python -m compileall -q /app
 
 FROM docker.io/python:3.14-slim-trixie
 
-RUN groupadd -r app && useradd -r -g app appuser
+# Fixed UID so runAsNonRoot is verifiable by Argocd
+RUN groupadd -r -g 10000 app && useradd -r -u 10000 -g app appuser
 WORKDIR /app
 
 # Data directory for the on-disc cache; mounted as a volume at runtime.
@@ -33,6 +34,6 @@ COPY --from=builder --chown=appuser:app /app/.venv /app/.venv
 COPY --from=builder --chown=appuser:app /app /app
 
 ENV PATH="/app/.venv/bin:$PATH"
-USER appuser
+USER 10000
 
 CMD ["python", "main.py"]
