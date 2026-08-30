@@ -21,6 +21,9 @@ jobs:
       - name: Lint
         run: make lint
 
+      - name: Test
+        run: make test
+
   build:
     runs-on: ubuntu-latest
     steps:

@@ -24,6 +24,51 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+  # Unattended releases, gate the release PR on lint+tests, then merge it
+  # The merge push re-triggers this workflow, which creates the release and
+  # runs build-and-push below
+  merge-release-pr:
+    needs: release-please
+    if: needs.release-please.outputs.release_created != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      # Find the open release PR via release-please's "autorelease: pending"
+      # label
+      - name: Find pending release PR
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh pr list --label "autorelease: pending" --state open \
+            --json number,headRefName \
+            --jq '.[0] |
+              "number=\(.number // "")\nbranch=\(.headRefName // "")"' \
+            >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v5
+        if: steps.pr.outputs.number != ''
+        with:
+          ref: ${{ steps.pr.outputs.branch }}
+
+      - uses: astral-sh/setup-uv@v7
+        if: steps.pr.outputs.number != ''
+        with:
+          enable-cache: false
+
+      - name: Lint and test release PR
+        if: steps.pr.outputs.number != ''
+        run: make install lint test
+
+      # Squash merge re-triggers this workflow on main, which then creates
+      # the release and runs build-and-push
+      - name: Merge release PR
+        if: steps.pr.outputs.number != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NUM: ${{ steps.pr.outputs.number }}
+        run: gh pr merge "$NUM" --squash --delete-branch
+
   build-and-push:
     needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
@@ -96,6 +141,8 @@ jobs:
           git config user.email \
             "41898282+github-actions[bot]@users.noreply.github.com"
           git add deploy/deployment.yaml uv.lock
-          git commit -m "chore(deploy): bump image to ${TAG}"
+          # [skip ci]: bot commit — no checks apply, and without it
+          # release-please would auto-merge itself into an endless release loop.
+          git commit -m "chore(deploy): bump image to ${TAG} [skip ci]"
           git pull --rebase origin main
           git push origin main
