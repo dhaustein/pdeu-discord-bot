@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.5](https://github.com/dhaustein/pdeu-discord-bot/compare/v0.2.4...v0.2.5) (2026-08-30)
+
+
+### Bug Fixes
+
+* catch exchange rate file exception on cold start ([454dc89](https://github.com/dhaustein/pdeu-discord-bot/commit/454dc892f94ebc424a286bc5575537f556eaf7e3))
+
 ## [0.2.4](https://github.com/dhaustein/pdeu-discord-bot/compare/v0.2.3...v0.2.4) (2026-08-30)
 
 
