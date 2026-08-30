@@ -24,7 +24,7 @@ spec:
       containers:
         - name: bot
           # Image tag is bumped by the release workflow (release-please.yaml)
-          image: ghcr.io/dhaustein/pdeu-discord-bot:v0.2.4
+          image: ghcr.io/dhaustein/pdeu-discord-bot:v0.2.5
           imagePullPolicy: IfNotPresent
           securityContext:
             runAsNonRoot: true
