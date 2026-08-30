@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/dhaustein/pdeu-discord-bot/compare/v0.2.3...v0.2.4) (2026-08-30)
+
+
+### Bug Fixes
+
+* use numeric UID 10000 for runAsNonRoot verification ([aef06d7](https://github.com/dhaustein/pdeu-discord-bot/commit/aef06d7c915df9e6ebe26c8172079960cb4f2502))
+
 ## [0.2.3](https://github.com/dhaustein/pdeu-discord-bot/compare/v0.2.2...v0.2.3) (2026-08-29)
 
 
