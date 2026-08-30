@@ -121,6 +121,9 @@ class ExchangeRateClient:
         """
         try:
             payload = json.loads(self._cache_path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            logger.info("No exchange rate cache on disc yet; will fetch on first use")
+            return False
         except OSError:
             logger.exception(
                 f"Failed to read exchange rate cache from {self._cache_path}"
@@ -155,7 +158,7 @@ class ExchangeRateClient:
             return False
         try:
             fetched_at = float(payload["fetched_at"])
-        except (KeyError, TypeError, ValueError):
+        except KeyError, TypeError, ValueError:
             # Unknown age: mark as stale so the next call refetches, but keep
             # the salvaged rates as a fallback.
             logger.warning(
